@@ -1,10 +1,10 @@
 "use client";
 
-import axiosInstance from "@/lib/axiosInstance";
 import { useTheme } from "@/context/ThemeContext";
+import axiosInstance from "@/lib/axiosInstance";
+import { Check } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Check } from "lucide-react";
 
 const planOptions = [
   {
@@ -52,6 +52,21 @@ export default function CompanyRegistration() {
     });
   };
 
+  // Load Razorpay script
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -64,12 +79,58 @@ export default function CompanyRegistration() {
         formData
       );
 
-      toast.success("Company Created Successfully");
-      toast.success(`Company Code: ${res.data.companyCode}`);
+      // If payment is required (paid plan)
+      if (res.data.paymentRequired) {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          toast.error("Failed to load payment gateway");
+          return;
+        }
 
-      handleCancel();
+        const options = {
+          key: res.data.key, // Razorpay Key ID
+          order_id: res.data.orderId, // Order ID from backend
+          amount: res.data.amount * 100, // Amount in paise
+          currency: "INR",
+          name: "Product Expiry",
+          description: `${formData.companyName} - ${formData.plan.toUpperCase()} Plan`,
+          prefill: {
+            email: formData.ownerEmail,
+            contact: "",
+          },
+          handler: async (response) => {
+            // Payment successful - verify on backend
+            try {
+              const verifyRes = await axiosInstance.post(
+                `/payment/verify-payment`,
+                {
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                }
+              );
+
+              toast.success("Payment Successful!");
+              toast.success(`Company Code: ${verifyRes.data.companyCode}`);
+              handleCancel();
+            } catch (err) {
+              toast.error("Payment verification failed");
+              console.error(err);
+            }
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        // Free plan - immediate success
+        toast.success("Company Created Successfully");
+        toast.success(`Company Code: ${res.data.companyCode}`);
+        handleCancel();
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration Failed");
+      console.error(err);
     } finally {
       setLoading(false);
     }
