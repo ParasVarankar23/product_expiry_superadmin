@@ -77,67 +77,53 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     /* -----------------------------------------
        SEARCH
     ------------------------------------------ */
+    const [searchResults, setSearchResults] = useState([]);
+
     const handleSearchSubmit = (e) => {
-        if (e.key === "Enter") {
-            router.push(`/search?query=${searchQuery}`);
+        if (e.key === "Enter" && searchResults.length > 0) {
+            // Navigate to first result
+            router.push(`/company/${searchResults[0]._id}`);
+            setSearchQuery("");
+            setShowStats(false);
         }
     };
 
-    // Debounced watcher for contextual stats suggestions
+    // Debounced search for companies by name
     useEffect(() => {
         if (statsTimer.current) clearTimeout(statsTimer.current);
 
-        if (!searchQuery || searchQuery.trim().length < 1) {
+        if (!searchQuery || searchQuery.trim().length < 2) {
             setShowStats(false);
+            setSearchResults([]);
             setStatsData(null);
             setStatsType(null);
             return;
         }
 
-        const q = searchQuery.trim().toLowerCase();
+        const q = searchQuery.trim();
 
         statsTimer.current = setTimeout(async () => {
             try {
                 setStatsLoading(true);
+                setStatsType("companies");
 
-                // PLAN overview
-                if (q.includes("plan") || q === "plans") {
-                    const BACKEND = process.env.NEXT_PUBLIC_BACKEND_API;
-                    const res = await axiosInstance.get(`${BACKEND}/institute/plans/overview`);
-                    setStatsData(res.data.data || {});
-                    setStatsType("plan");
+                // Search for companies by name
+                const res = await axiosInstance.get(
+                    `/superadmin/companies?search=${q}&limit=5`
+                );
+
+                if (res.data.data && res.data.data.length > 0) {
+                    setSearchResults(res.data.data);
                     setShowStats(true);
-                    return;
-                }
-
-                // STATUS overview (active/suspend)
-                if (q.includes("active") || q.includes("accept") || q.includes("suspend") || q.includes("suspended") || q === "status") {
-                    const BACKEND = process.env.NEXT_PUBLIC_BACKEND_API;
-                    const res = await axiosInstance.get(`${BACKEND}/institute/status/overview`);
-                    setStatsData(res.data.data || {});
-                    setStatsType("status");
+                } else {
+                    setSearchResults([]);
                     setShowStats(true);
-                    return;
                 }
-
-                // REGISTER quick action
-                if (q.includes("register") || q.includes("sign up") || q.includes("signup")) {
-                    setStatsType("register");
-                    setStatsData(null);
-                    setShowStats(true);
-                    return;
-                }
-
-                // Otherwise show a 'no results' notice for unknown queries
-                setShowStats(true);
-                setStatsData(null);
-                setStatsType("none");
 
             } catch (err) {
-                console.error("Search stats error:", err);
+                console.error("Search error:", err);
+                setSearchResults([]);
                 setShowStats(true);
-                setStatsData(null);
-                setStatsType("none");
             } finally {
                 setStatsLoading(false);
             }
@@ -225,76 +211,47 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                             <Search className="absolute left-3 top-2.5 h-4 w-4 opacity-70" />
                             <input
                                 type="text"
-                                placeholder="Search plans, active, suspend or register"
+                                placeholder="Search company by name..."
                                 className={`w-full py-2 pl-10 pr-4 rounded-md outline-none ${currentTheme.input}`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={handleSearchSubmit}
-                                onFocus={() => setSearchFocused(true)}
-                                onBlur={() => setSearchFocused(false)}
+                                onFocus={() => searchQuery.length >= 2 && setShowStats(true)}
                             />
-                            {/* Contextual stats dropdown */}
+                            {/* Company search results dropdown */}
                             {showStats && (
-                                <div ref={statsRef} className={`absolute left-0 top-full mt-2 w-full sm:w-[520px] z-50 p-3 rounded-md shadow-lg border ${currentTheme.dropdown}`} style={{ transform: 'translateY(6px)' }}>
-                                    {statsLoading && <div className="text-sm">Loading...</div>}
-
-                                    {!statsLoading && statsType === "plan" && statsData && (
-                                        <div className="flex gap-3 justify-between">
-                                            <div className="flex-1 text-center p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                                                <div className="text-xs">Free</div>
-                                                <div className="text-lg font-bold">{statsData.free ?? 0}</div>
-                                            </div>
-                                            <div className="flex-1 text-center p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                                                <div className="text-xs">Basic</div>
-                                                <div className="text-lg font-bold">{statsData.basic ?? 0}</div>
-                                            </div>
-                                            <div className="flex-1 text-center p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                                                <div className="text-xs">Pro</div>
-                                                <div className="text-lg font-bold">{statsData.pro ?? 0}</div>
-                                            </div>
-                                            <div className="flex-1 text-center p-2 bg-gray-50 dark:bg-slate-800 rounded">
-                                                <div className="text-xs">Custom</div>
-                                                <div className="text-lg font-bold">{statsData.custom ?? 0}</div>
-                                            </div>
-                                        </div>
+                                <div ref={statsRef} className={`absolute left-0 top-full mt-2 w-full z-50 rounded-md shadow-lg border max-h-80 overflow-y-auto ${currentTheme.dropdown}`} style={{ transform: 'translateY(6px)' }}>
+                                    {statsLoading && (
+                                        <div className="p-4 text-center text-sm">Loading companies...</div>
                                     )}
 
-                                    {!statsLoading && statsType === "status" && statsData && (
-                                        <div className="flex gap-3 justify-between">
-                                            <div className="flex-1 text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded">
-                                                <div className="text-xs">Active</div>
-                                                <div className="text-lg font-bold">{statsData.accepted ?? statsData.accept ?? 0}</div>
-                                            </div>
-                                            <div className="flex-1 text-center p-3 bg-red-50 dark:bg-red-900/20 rounded">
-                                                <div className="text-xs">Suspended</div>
-                                                <div className="text-lg font-bold">{statsData.suspended ?? statsData.suspend ?? 0}</div>
-                                            </div>
-                                            <div className="flex-1 text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                                                <div className="text-xs">Total</div>
-                                                <div className="text-lg font-bold">{statsData.total ?? 0}</div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {!statsLoading && statsType === "register" && (
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="text-sm font-medium">Register new institute</div>
-                                                <div className="text-xs text-gray-500">Quick link to register an institute</div>
-                                            </div>
-                                            <div>
+                                    {!statsLoading && statsType === "companies" && searchResults.length > 0 && (
+                                        <div className="p-2">
+                                            {searchResults.map((company) => (
                                                 <button
-                                                    onClick={() => router.push("/institute")}
-                                                    className="px-3 py-2 bg-blue-600 text-white rounded"
+                                                    key={company._id}
+                                                    onClick={() => {
+                                                        router.push(`/company/${company._id}`);
+                                                        setSearchQuery("");
+                                                        setShowStats(false);
+                                                    }}
+                                                    className={`w-full text-left p-3 rounded mb-1 transition-colors ${currentTheme.hover}`}
                                                 >
-                                                    Register
+                                                    <div className="font-semibold text-sm">{company.companyName}</div>
+                                                    <div className="text-xs opacity-70">
+                                                        Owner: {company.ownerName} • Plan: <span className="capitalize">{company.plan}</span>
+                                                    </div>
+                                                    <div className="text-xs opacity-60">
+                                                        Status: <span className="font-medium">{company.planStatus}</span> • Users: {company.totalUsers || 0}/{company.userLimit}
+                                                    </div>
                                                 </button>
-                                            </div>
+                                            ))}
                                         </div>
                                     )}
-                                    {!statsLoading && statsType === "none" && (
-                                        <div className="text-center py-4 text-sm text-gray-600 dark:text-gray-300">
-                                            No quick results for "{searchQuery}". Try: <strong>plan</strong>, <strong>active</strong>, <strong>suspend</strong>, or <strong>register</strong>.
+
+                                    {!statsLoading && statsType === "companies" && searchResults.length === 0 && (
+                                        <div className="text-center py-6 text-sm text-gray-600 dark:text-gray-300">
+                                            No companies found matching "<strong>{searchQuery}</strong>"
                                         </div>
                                     )}
                                 </div>
