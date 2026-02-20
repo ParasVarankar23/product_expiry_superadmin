@@ -267,6 +267,7 @@ export function AuthProvider({ children }) {
         googleLogin,
         logout,
         updateProfile,
+        refreshProfile,
     }), [token, profile, isAuthenticated, isLoading, error])
 
     return (

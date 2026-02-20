@@ -158,8 +158,8 @@ export default function LoginPage() {
                             type="submit"
                             disabled={loading}
                             className={`w-full py-3 rounded-xl font-semibold transition ${isDark
-                                ? "bg-white text-black"
-                                : "bg-black text-white"
+                                ? "bg-white text-black hover:opacity-90"
+                                : "bg-black text-white hover:opacity-90"
                                 }`}
                         >
                             {loading ? "Signing in..." : "Sign In"}
@@ -188,7 +188,18 @@ export default function LoginPage() {
                         <FcGoogle size={20} />
                         Continue with Google
                     </button>
+                    {/* FORGOT PASSWORD LINK */}
+                    <div className="text-right py-2">
+                        <button
+                            type="button"
+                            onClick={() => router.push("/forgot-password")}
+                            className="text-sm text-sky-500 hover:text-sky-600 transition font-medium"
+                        >
+                            Forgot Password?
+                        </button>
+                    </div>
                 </div>
+                
             </div>
         </main>
     );

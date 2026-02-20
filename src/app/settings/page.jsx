@@ -7,22 +7,8 @@ import toast from "react-hot-toast";
 import { FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
 
 export default function ChangePasswordCard() {
-    const { mode } = useTheme();
-
-    const themeStyles = {
-        light: {
-            card: "bg-white text-gray-900 shadow-xl",
-            label: "text-gray-700",
-            input: "bg-gray-100 border border-gray-300 text-gray-800",
-        },
-        dark: {
-            card: "bg-slate-900 text-gray-100 shadow-xl border border-slate-700",
-            label: "text-gray-300",
-            input: "bg-slate-800 border border-slate-600 text-gray-100",
-        },
-    };
-
-    const T = themeStyles[mode] || themeStyles.light;
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
 
     const [form, setForm] = useState({
         oldPassword: "",
@@ -31,12 +17,21 @@ export default function ChangePasswordCard() {
     });
 
     const [loading, setLoading] = useState(false);
-    const [showOld, setShowOld] = useState(false);
-    const [showNew, setShowNew] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
+    const [show, setShow] = useState({
+        old: false,
+        new: false,
+        confirm: false,
+    });
 
-    const handleChange = (e) => {
+    const handleChange = (e) =>
         setForm({ ...form, [e.target.name]: e.target.value });
+
+    const handleCancel = () => {
+        setForm({
+            oldPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -51,28 +46,19 @@ export default function ChangePasswordCard() {
             setLoading(true);
 
             await toast.promise(
-                axiosInstance.post(
-                    `${process.env.NEXT_PUBLIC_BACKEND_API}/superadmin/change-password`,
-                    {
-                        oldPassword: form.oldPassword,
-                        newPassword: form.newPassword,
-                    }
-                ),
+                axiosInstance.post(`/superadmin/change-password`, {
+                    oldPassword: form.oldPassword,
+                    newPassword: form.newPassword,
+                }),
                 {
-                    loading: "Changing password...",
-                    success: "Password changed successfully 🔐",
+                    loading: "Updating password...",
+                    success: "Password updated successfully 🔐",
                     error: (err) =>
-                        err.response?.data?.message ||
-                        "Failed to change password",
+                        err.response?.data?.message || "Failed to update password",
                 }
             );
 
-            setForm({
-                oldPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-
+            handleCancel();
         } catch (err) {
             console.error(err);
         } finally {
@@ -81,86 +67,138 @@ export default function ChangePasswordCard() {
     };
 
     return (
-        <div className={`max-w-2xl mx-auto p-6 rounded-2xl ${T.card}`}>
-            <div className="flex items-center gap-3 mb-6">
-                <FaLock className="text-blue-600 text-xl" />
-                <h2 className="text-2xl font-bold">Change Password</h2>
+        <div
+            className={`min-h-screen flex items-center justify-center p-10
+        ${isDark ? "bg-black text-white" : "bg-gray-50 text-black"}`}
+        >
+            <div
+                className={`w-full max-w-xl rounded-2xl p-10 border transition-all
+          ${isDark
+                        ? "bg-zinc-900 border-white/10"
+                        : "bg-white border-gray-200 shadow-sm"
+                    }`}
+            >
+                {/* HEADER */}
+                <div className="flex items-center gap-3 mb-8">
+                    <FaLock />
+                    <h2 className="text-2xl font-semibold">
+                        Change Password
+                    </h2>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+
+                    <PasswordInput
+                        label="Old Password"
+                        name="oldPassword"
+                        placeholder="Enter your old password"
+                        value={form.oldPassword}
+                        show={show.old}
+                        toggle={() => setShow({ ...show, old: !show.old })}
+                        onChange={handleChange}
+                        isDark={isDark}
+                    />
+
+                    <PasswordInput
+                        label="New Password"
+                        name="newPassword"
+                        placeholder="Enter your new password"
+                        value={form.newPassword}
+                        show={show.new}
+                        toggle={() => setShow({ ...show, new: !show.new })}
+                        onChange={handleChange}
+                        isDark={isDark}
+                    />
+
+                    <PasswordInput
+                        label="Confirm New Password"
+                        name="confirmPassword"
+                        placeholder="Confirm your new password"
+                        value={form.confirmPassword}
+                        show={show.confirm}
+                        toggle={() => setShow({ ...show, confirm: !show.confirm })}
+                        onChange={handleChange}
+                        isDark={isDark}
+                    />
+
+                    {/* BUTTON ROW */}
+                    <div className="flex gap-4 pt-2">
+
+                        <button
+                            type="button"
+                            onClick={handleCancel}
+                            disabled={loading}
+                            className={`flex-1 py-3 rounded-xl border transition
+                ${isDark
+                                    ? "border-white/20 hover:bg-white/10"
+                                    : "border-gray-300 hover:bg-gray-100"
+                                }
+                ${loading ? "opacity-50 cursor-not-allowed" : ""}
+              `}
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className={`flex-1 py-3 rounded-xl font-medium transition
+                ${isDark
+                                    ? "bg-white text-black hover:opacity-80"
+                                    : "bg-black text-white hover:opacity-80"
+                                }
+                ${loading ? "opacity-50 cursor-not-allowed" : ""}
+              `}
+                        >
+                            {loading ? "Updating..." : "Update Password"}
+                        </button>
+
+                    </div>
+                </form>
             </div>
+        </div>
+    );
+}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+function PasswordInput({
+    label,
+    name,
+    value,
+    show,
+    toggle,
+    onChange,
+    isDark,
+    placeholder,
+}) {
+    return (
+        <div>
+            <label className="text-sm opacity-60">
+                {label}
+            </label>
 
-                {/* OLD PASSWORD */}
-                <div>
-                    <label className={T.label}>Old Password</label>
-                    <div className="relative mt-1">
-                        <input
-                            type={showOld ? "text" : "password"}
-                            name="oldPassword"
-                            value={form.oldPassword}
-                            onChange={handleChange}
-                            required
-                            className={`w-full p-3 rounded ${T.input}`}
-                        />
-                        <span
-                            onClick={() => setShowOld(!showOld)}
-                            className="absolute right-4 top-3 cursor-pointer text-gray-400"
-                        >
-                            {showOld ? <FaEyeSlash /> : <FaEye />}
-                        </span>
-                    </div>
-                </div>
+            <div className="relative mt-2">
+                <input
+                    type={show ? "text" : "password"}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    required
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition
+            ${isDark
+                            ? "bg-black border-white/20 text-white placeholder-gray-500 focus:border-white"
+                            : "bg-white border-gray-300 placeholder-gray-400 focus:border-black"
+                        }
+          `}
+                />
 
-                {/* NEW PASSWORD */}
-                <div>
-                    <label className={T.label}>New Password</label>
-                    <div className="relative mt-1">
-                        <input
-                            type={showNew ? "text" : "password"}
-                            name="newPassword"
-                            value={form.newPassword}
-                            onChange={handleChange}
-                            required
-                            className={`w-full p-3 rounded ${T.input}`}
-                        />
-                        <span
-                            onClick={() => setShowNew(!showNew)}
-                            className="absolute right-4 top-3 cursor-pointer text-gray-400"
-                        >
-                            {showNew ? <FaEyeSlash /> : <FaEye />}
-                        </span>
-                    </div>
-                </div>
-
-                {/* CONFIRM PASSWORD */}
-                <div>
-                    <label className={T.label}>Confirm New Password</label>
-                    <div className="relative mt-1">
-                        <input
-                            type={showConfirm ? "text" : "password"}
-                            name="confirmPassword"
-                            value={form.confirmPassword}
-                            onChange={handleChange}
-                            required
-                            className={`w-full p-3 rounded ${T.input}`}
-                        />
-                        <span
-                            onClick={() => setShowConfirm(!showConfirm)}
-                            className="absolute right-4 top-3 cursor-pointer text-gray-400"
-                        >
-                            {showConfirm ? <FaEyeSlash /> : <FaEye />}
-                        </span>
-                    </div>
-                </div>
-
-                {/* SUBMIT */}
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+                <span
+                    onClick={toggle}
+                    className="absolute right-4 top-3 cursor-pointer opacity-60"
                 >
-                    {loading ? "Updating..." : "Update Password"}
-                </button>
-            </form>
+                    {show ? <FaEyeSlash /> : <FaEye />}
+                </span>
+            </div>
         </div>
     );
 }
