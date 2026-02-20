@@ -1,26 +1,199 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@keyframes scroll {
+  0% {
+    transform: translateX(0%);
+  }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  100% {
+    transform: translateX(-50%);
   }
 }
 
+.animate-scrolling-text {
+  display: inline-block;
+  animation: scroll 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-scrolling-text:hover {
+  animation-play-state: paused;
+}
+
+/* ===== Global Variables ===== */
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --primary: #000000;
+  /* Black in light mode */
+  --accent: #ffffff;
+  /* White text */
+  --section-bg: #f5f5f5;
+}
+
+/* ===== Light Mode ===== */
+html.light {
+  --background: #ffffff;
+  --foreground: #000000;
+  --navbar-bg: #ffffff;
+  --navbar-text: #000000;
+  --primary: #000000;
+  /* Black button bg */
+  --accent: #ffffff;
+  /* White text */
+
+  /* Card / UI tokens */
+  --card-bg: #ffffff;
+  --card-border: #e6e6e6;
+  --card-text: #0f172a;
+  --muted: #6b7280;
+
+  /* Accents */
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+
+  /* Charts */
+  --graph-grid: #e5e7eb;
+  --chart-stroke: #2563eb;
+}
+
+/* ===== Dark Mode ===== */
+html.dark {
+  --background: #0d0d0d;
+  --foreground: #ffffff;
+  --navbar-bg: #0d0d0d;
+  --navbar-text: #ffffff;
+  --primary: #ffffff;
+  /* White button bg */
+  --accent: #000000;
+  /* Black text */
+
+  /* Card / UI tokens (dark) */
+  --card-bg: #0f1117;
+  --card-border: #1f2937;
+  --card-text: #e6eef8;
+  --muted: #9ca3af;
+
+  /* Accents (darker variants) */
+  --success: #059669;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --info: #2563eb;
+
+  /* Charts */
+  --graph-grid: #374151;
+  --chart-stroke: #60a5fa;
+}
+
+/* ===== Global Styles ===== */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ===== Buttons ===== */
+button {
+  background-color: var(--primary);
+  color: var(--accent);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: background 0.3s, color 0.3s, transform 0.2s;
+}
+
+button:hover {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* ===== Section Styling ===== */
+.section {
+  background-color: var(--section-bg);
+  padding: 2rem 0;
+}
+
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Reusable card class that uses theme tokens */
+.card {
+  background-color: var(--card-bg);
+  color: var(--card-text);
+  border: 1px solid var(--card-border);
+  transition: background-color 0.25s, color 0.25s, border-color 0.25s;
+}
+
+.card-muted {
+  color: var(--muted);
+}
+
+.card-accent-success {
+  background-color: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+.card-accent-danger {
+  background-color: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+.card-accent-warning {
+  background-color: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.card-accent-info {
+  background-color: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.18);
+}
+
+/* Plan card */
+.plan-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--card-text);
+  transition: transform .15s;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Small utilities for charts */
+.chart-grid {
+  stroke: var(--graph-grid);
+}
+
+.chart-stroke {
+  stroke: var(--chart-stroke);
 }
