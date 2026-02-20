@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import toast from "react-hot-toast";
 import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
     const { theme } = useTheme();
+    const { login } = useAuth();
     const isDark = theme === "dark";
+    const router = useRouter();
 
     const [form, setForm] = useState({
         email: "",
@@ -16,31 +21,34 @@ export default function LoginPage() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleLogin = (e) => {
+    // ==============================
+    // 🔐 NORMAL LOGIN
+    // ==============================
+    const handleLogin = async (e) => {
         e.preventDefault();
-        setLoading(true);
 
-        console.log("SuperAdmin Login:", form);
+        try {
+            setLoading(true);
 
-        setTimeout(() => {
+            // Use AuthContext login method
+            await login(form.email, form.password);
+
+            toast.success("Login Successful 🚀");
+
+            router.push("/dashboard");
+
+        } catch (err) {
+            toast.error(
+                err.response?.data?.message || "Invalid credentials"
+            );
+        } finally {
             setLoading(false);
-        }, 1000);
-    };
-
-    const googleLogin = () => {
-        setGoogleLoading(true);
-
-        console.log("SuperAdmin Google login clicked");
-
-        setTimeout(() => {
-            setGoogleLoading(false);
-        }, 1000);
+        }
     };
 
     return (
@@ -48,6 +56,7 @@ export default function LoginPage() {
             className={`min-h-screen flex ${isDark ? "bg-black text-white" : "bg-white text-black"
                 }`}
         >
+            {/* LEFT SIDE */}
             {/* LEFT SIDE */}
             <div
                 className={`hidden md:flex w-1/2 flex-col justify-center px-16 ${isDark ? "bg-white/5" : "bg-black/[0.03]"
@@ -90,34 +99,31 @@ export default function LoginPage() {
             <div className="w-full md:w-1/2 flex items-center justify-center px-6 py-10">
                 <div
                     className={`w-full max-w-md p-8 rounded-3xl border shadow-lg ${isDark
-                            ? "bg-white/5 border-white/10"
-                            : "bg-white border-black/10"
+                        ? "bg-white/5 border-white/10"
+                        : "bg-white border-black/10"
                         }`}
                 >
                     <h2 className="text-3xl font-bold text-center mb-1">
                         SuperAdmin Login
                     </h2>
                     <p className="text-center opacity-70 mb-4">
-                        Enter your SuperAdmin credentials
+                        Enter your credentials
                     </p>
+
                     <form onSubmit={handleLogin} className="space-y-4">
 
                         {/* EMAIL */}
                         <input
                             type="email"
                             name="email"
-                            placeholder="Enter SuperAdmin Email"
+                            placeholder="Enter Email"
                             value={form.email}
                             onChange={handleChange}
                             required
-                            className={`
-                                w-full px-4 py-3 rounded-xl border outline-none transition
-                                focus:ring-2 focus:ring-sky-500
-                                ${isDark
-                                    ? "bg-black border-white/20 text-white"
-                                    : "bg-white border-black/20 text-black"
-                                }
-                            `}
+                            className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
+                                ? "bg-black border-white/20"
+                                : "bg-white border-black/20"
+                                }`}
                         />
 
                         {/* PASSWORD */}
@@ -129,18 +135,15 @@ export default function LoginPage() {
                                 value={form.password}
                                 onChange={handleChange}
                                 required
-                                className={`
-                                    w-full px-4 py-3 rounded-xl border outline-none transition pr-12
-                                    focus:ring-2 focus:ring-sky-500
-                                    ${isDark
-                                        ? "bg-black border-white/20 text-white"
-                                        : "bg-white border-black/20 text-black"
-                                    }
-                                `}
+                                className={`w-full px-4 py-3 pr-12 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
+                                    ? "bg-black border-white/20"
+                                    : "bg-white border-black/20"
+                                    }`}
                             />
-
                             <span
-                                onClick={() => setShowPassword(!showPassword)}
+                                onClick={() =>
+                                    setShowPassword(!showPassword)
+                                }
                                 className="absolute right-4 top-3 cursor-pointer text-gray-400"
                             >
                                 {showPassword ? (
@@ -151,23 +154,12 @@ export default function LoginPage() {
                             </span>
                         </div>
 
-                        {/* FORGOT PASSWORD */}
-                        <div className="text-right text-sm">
-                            <a
-                                href="/forgot-password"
-                                className="text-sky-500 hover:underline"
-                            >
-                                Forgot password?
-                            </a>
-                        </div>
-
-                        {/* LOGIN BUTTON */}
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`w-full py-3 rounded-xl font-semibold transition hover:scale-[1.02] ${isDark
-                                    ? "bg-white text-black hover:opacity-85"
-                                    : "bg-black text-white hover:opacity-85"
+                            className={`w-full py-3 rounded-xl font-semibold transition ${isDark
+                                ? "bg-white text-black"
+                                : "bg-black text-white"
                                 }`}
                         >
                             {loading ? "Signing in..." : "Sign In"}
@@ -183,17 +175,18 @@ export default function LoginPage() {
 
                     {/* GOOGLE LOGIN */}
                     <button
-                        onClick={googleLogin}
-                        disabled={googleLoading || loading}
-                        className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border transition ${isDark
-                                ? "border-white/20 hover:bg-white/10"
-                                : "border-black/20 hover:bg-black/5"
+                        onClick={() => {
+                            // Implement Google OAuth flow here
+                            toast.info("Google login coming soon!");
+                        }}
+                        disabled={loading}
+                        className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border ${isDark
+                            ? "border-white/20 hover:bg-white/10"
+                            : "border-black/20 hover:bg-black/5"
                             }`}
                     >
                         <FcGoogle size={20} />
-                        {googleLoading
-                            ? "Authenticating..."
-                            : "Continue with Google"}
+                        Continue with Google
                     </button>
                 </div>
             </div>

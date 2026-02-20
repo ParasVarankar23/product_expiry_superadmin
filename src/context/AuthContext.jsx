@@ -8,7 +8,7 @@ const AuthContext = createContext()
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_API
 
 /**
- * Decode JWT payload (safely extract id + sessionId only)
+ * Decode JWT payload (safely extract id and role)
  * Never use decoded data for authorization decisions
  */
 function decodeToken(token) {
@@ -22,7 +22,7 @@ function decodeToken(token) {
 
         return {
             id: decoded.id,
-            sessionId: decoded.sessionId,
+            role: decoded.role,
             exp: decoded.exp,
             iat: decoded.iat
         }
@@ -37,7 +37,7 @@ function decodeToken(token) {
  */
 function isTokenExpired(token) {
     const decoded = decodeToken(token)
-    if (!decoded || !decoded.exp) return true
+    if (!decoded?.exp) return true
 
     // Check if token expires within 1 minute
     const expirationTime = decoded.exp * 1000
@@ -45,164 +45,50 @@ function isTokenExpired(token) {
 }
 
 export function AuthProvider({ children }) {
-    const [accessToken, setAccessToken] = useState(null)
-    const [refreshToken, setRefreshToken] = useState(null)
+    const [token, setToken] = useState(null)
     const [profile, setProfile] = useState(null)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(null)
 
     /**
-     * Fetch user profile from backend
-     * This is the source of truth for role, email, permissions, etc.
+     * Login: store token + profile from backend response
      */
-    const fetchProfile = async (token) => {
-        try {
-            setError(null)
-            const res = await axios.get(`${BACKEND}/auth/me`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-
-            const profileData = res.data?.data || res.data
-            setProfile(profileData)
-            setIsAuthenticated(true)
-            return profileData
-        } catch (err) {
-            console.error('Failed to fetch profile:', err)
-            setError(err.response?.data?.message || 'Failed to fetch profile')
-            setProfile(null)
-            setIsAuthenticated(false)
-
-            // If profile fetch fails, clear tokens
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
-            setAccessToken(null)
-            setRefreshToken(null)
-
-            throw err
-        }
-    }
-
-    /**
-     * Refresh access token using refresh token
-     */
-    const refreshAccessToken = async () => {
-        try {
-            const storedRefreshToken = localStorage.getItem('refreshToken')
-            if (!storedRefreshToken) {
-                throw new Error('No refresh token available')
-            }
-
-            const response = await axios.post(`${BACKEND}/auth/refresh`, {
-                refreshToken: storedRefreshToken,
-            })
-
-            const resData = response?.data || {}
-
-            let newAccessToken = resData.accessToken || resData.data?.accessToken || resData.tokens?.accessToken || null
-            let newRefreshToken = resData.refreshToken || resData.data?.refreshToken || resData.tokens?.refreshToken || storedRefreshToken
-
-            // Fallback to header
-            if (!newAccessToken) {
-                const authHeader = response?.headers?.authorization || response?.headers?.Authorization
-                if (authHeader && typeof authHeader === 'string') {
-                    const parts = authHeader.split(' ')
-                    newAccessToken = parts.length === 2 ? parts[1] : authHeader
-                }
-            }
-
-            // If backend uses httpOnly cookie and didn't return token bodies/headers,
-            // assume refresh succeeded when status === 200 and try to fetch profile using cookie.
-            if (!newAccessToken) {
-                if (response && response.status === 200) {
-                    localStorage.removeItem('accessToken')
-                    setAccessToken(null)
-                    setRefreshToken(storedRefreshToken)
-                    const profileData = await fetchProfile(null)
-                    return profileData ? profileData.accessToken || null : null
-                }
-
-                throw new Error('No new access token received')
-            }
-
-            // Store and set tokens
-            localStorage.setItem('accessToken', newAccessToken)
-            localStorage.setItem('refreshToken', newRefreshToken)
-            setAccessToken(newAccessToken)
-            setRefreshToken(newRefreshToken)
-
-            return newAccessToken
-        } catch (err) {
-            console.error('Failed to refresh access token:', err)
-
-            // If refresh fails, logout user
-            await logout()
-            throw err
-        }
-    }
-
-    /**
-     * Refresh user profile
-     */
-    const refreshProfile = async () => {
-        const storedToken = localStorage.getItem('accessToken')
-        if (!storedToken) {
-            setIsAuthenticated(false)
-            setProfile(null)
-            setAccessToken(null)
-            return null
-        }
-
-        try {
-            return await fetchProfile(storedToken)
-        } catch (err) {
-            console.error('Profile refresh failed:', err)
-            return null
-        }
-    }
-
-    /**
-     * Login: store tokens + fetch profile
-     */
-    const login = async (emailOrPhone, password) => {
+    const login = async (email, password) => {
         try {
             setError(null)
             setIsLoading(true)
 
-            // Call backend login
-            const response = await axios.post(`${BACKEND}/auth/login`, {
-                emailOrPhone,
+            // Call backend superadmin login
+            const response = await axios.post(`${BACKEND}/superadmin/login`, {
+                email,
                 password,
             })
 
-            const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data
+            const { token: authToken, superadmin } = response.data
 
-            if (!newAccessToken || !newRefreshToken) {
-                throw new Error('No tokens received from backend')
+            if (!authToken || !superadmin) {
+                throw new Error('Invalid response from server')
             }
 
-            // Store tokens in localStorage
-            localStorage.setItem('accessToken', newAccessToken)
-            localStorage.setItem('refreshToken', newRefreshToken)
+            // Store token in localStorage
+            localStorage.setItem('superadminToken', authToken)
 
-            setAccessToken(newAccessToken)
-            setRefreshToken(newRefreshToken)
-
-            // Immediately fetch profile
-            const profileData = await fetchProfile(newAccessToken)
+            setToken(authToken)
+            setProfile(superadmin)
+            setIsAuthenticated(true)
 
             return {
                 success: true,
-                profile: profileData,
-                accessToken: newAccessToken
+                profile: superadmin,
+                token: authToken
             }
         } catch (err) {
             const message = err.response?.data?.message || err.message || 'Login failed'
             setError(message)
             setIsAuthenticated(false)
             setProfile(null)
-            setAccessToken(null)
-            setRefreshToken(null)
+            setToken(null)
             throw err
         } finally {
             setIsLoading(false)
@@ -210,27 +96,70 @@ export function AuthProvider({ children }) {
     }
 
     /**
-     * Logout: clear tokens + profile
+     * Google Login
+     */
+    const googleLogin = async (googleUser) => {
+        try {
+            setError(null)
+            setIsLoading(true)
+
+            const response = await axios.post(`${BACKEND}/superadmin/google-login`, googleUser)
+
+            const { token: authToken, superadmin } = response.data
+
+            if (!authToken || !superadmin) {
+                throw new Error('Invalid response from server')
+            }
+
+            // Store token in localStorage
+            localStorage.setItem('superadminToken', authToken)
+
+            setToken(authToken)
+            setProfile(superadmin)
+            setIsAuthenticated(true)
+
+            return {
+                success: true,
+                profile: superadmin,
+                token: authToken
+            }
+        } catch (err) {
+            const message = err.response?.data?.message || err.message || 'Google login failed'
+            setError(message)
+            setIsAuthenticated(false)
+            setProfile(null)
+            setToken(null)
+            throw err
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    /**
+     * Logout: clear token + profile and invalidate session on backend
      */
     const logout = async () => {
         try {
-            const token = accessToken || localStorage.getItem('accessToken')
-            if (token) {
-                // Call backend logout endpoint
-                await axios.post(
-                    `${BACKEND}/auth/logout`,
-                    {},
-                    { headers: { Authorization: `Bearer ${token}` } }
-                ).catch(err => console.warn('Backend logout failed:', err))
+            const storedToken = token || localStorage.getItem('superadminToken')
+
+            // Call backend logout to invalidate session
+            if (storedToken) {
+                try {
+                    await axios.post(
+                        `${BACKEND}/superadmin/logout`,
+                        {},
+                        { headers: { Authorization: `Bearer ${storedToken}` } }
+                    )
+                } catch (err) {
+                    console.warn('Backend logout failed:', err)
+                }
             }
         } catch (err) {
             console.error('Logout error:', err)
         } finally {
             // Clear everything regardless of backend success
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
-            setAccessToken(null)
-            setRefreshToken(null)
+            localStorage.removeItem('superadminToken')
+            setToken(null)
             setProfile(null)
             setIsAuthenticated(false)
             setError(null)
@@ -238,42 +167,61 @@ export function AuthProvider({ children }) {
     }
 
     /**
-     * On mount: check if tokens exist in localStorage and restore auth state
+     * Update profile locally (for profile updates without re-login)
+     */
+    const updateProfile = (updatedData) => {
+        setProfile(prev => ({ ...prev, ...updatedData }))
+    }
+
+    /**
+     * On mount: check if token exists in localStorage and restore auth state
      */
     useEffect(() => {
         const initializeAuth = async () => {
             try {
-                const storedAccessToken = localStorage.getItem('accessToken')
-                const storedRefreshToken = localStorage.getItem('refreshToken')
+                const storedToken = localStorage.getItem('superadminToken')
 
-                if (!storedAccessToken || !storedRefreshToken) {
+                if (!storedToken) {
                     setIsAuthenticated(false)
                     setProfile(null)
                     setIsLoading(false)
                     return
                 }
 
-                setAccessToken(storedAccessToken)
-                setRefreshToken(storedRefreshToken)
-
-                // Check if access token is expired
-                if (isTokenExpired(storedAccessToken)) {
-                    // Try to refresh it
-                    try {
-                        const newAccessToken = await refreshAccessToken()
-                        await fetchProfile(newAccessToken)
-                    } catch (err) {
-                        console.error('Auto-refresh failed, logging out:', err)
-                        await logout()
-                    }
-                } else {
-                    // Token is still valid, fetch profile
-                    await fetchProfile(storedAccessToken)
+                // Check if token is expired
+                if (isTokenExpired(storedToken)) {
+                    console.log('Token expired, logging out')
+                    await logout()
+                    setIsLoading(false)
+                    return
                 }
+
+                // Token is valid, fetch profile from backend
+                setToken(storedToken)
+
+                try {
+                    // Fetch fresh profile data from backend
+                    const profileRes = await axios.get(`${BACKEND}/superadmin/profile`, {
+                        headers: { Authorization: `Bearer ${storedToken}` }
+                    })
+
+                    if (profileRes.data.success && profileRes.data.superadmin) {
+                        setProfile(profileRes.data.superadmin)
+                        setIsAuthenticated(true)
+                    } else {
+                        throw new Error('Invalid profile response')
+                    }
+                } catch (profileErr) {
+                    console.error('Failed to fetch profile:', profileErr)
+                    // If profile fetch fails, clear auth and logout
+                    await logout()
+                }
+
             } catch (err) {
                 console.error('Auth initialization error:', err)
                 setIsAuthenticated(false)
                 setProfile(null)
+                await logout()
             } finally {
                 setIsLoading(false)
             }
@@ -283,17 +231,16 @@ export function AuthProvider({ children }) {
     }, [])
 
     const value = useMemo(() => ({
-        accessToken,
-        refreshToken,
+        token,
         profile,
         isAuthenticated,
         isLoading,
         error,
         login,
+        googleLogin,
         logout,
-        refreshProfile,
-        refreshAccessToken,
-    }), [accessToken, refreshToken, profile, isAuthenticated, isLoading, error])
+        updateProfile,
+    }), [token, profile, isAuthenticated, isLoading, error])
 
     return (
         <AuthContext.Provider value={value}>
@@ -312,4 +259,3 @@ export function useAuth() {
 
 // Export token decoder for internal use only (not for auth decisions)
 export { decodeToken, isTokenExpired }
-

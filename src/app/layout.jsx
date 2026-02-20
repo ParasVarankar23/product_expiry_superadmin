@@ -5,19 +5,20 @@ import Sidebar from "@/components/layout/sidebar";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AutoRefreshProvider } from "@/context/AutoRefreshContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 function AppLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   // ❌ Hide Navbar & Sidebar for Login + Forgot Password pages
-  const isAuthPage = pathname === "/" || pathname === "/forgotpassword";
+  const isAuthPage = pathname === "/" || pathname === "/forgot-password";
 
   const { theme } = useTheme();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, profile } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -34,6 +35,18 @@ function AppLayout({ children }) {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Redirect to login if not authenticated and not on auth page
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !isAuthPage) {
+      router.push("/");
+    }
+  }, [isAuthenticated, isLoading, isAuthPage, router]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Auth State:", { isAuthenticated, isLoading, profile, pathname, isAuthPage });
+  }, [isAuthenticated, isLoading, profile, pathname, isAuthPage]);
 
   return (
     <body>
@@ -63,13 +76,13 @@ function AppLayout({ children }) {
         }}
       />
 
-      {/* 🌙 Navbar hidden on login/forgotpassword */}
-      {!isAuthPage && !isLoading && isAuthenticated && (
+      {/* 🌙 Navbar - Show when authenticated and not on auth page */}
+      {!isAuthPage && isAuthenticated && (
         <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       )}
 
-      {/* 📌 Sidebar */}
-      {!isAuthPage && !isLoading && isAuthenticated && (
+      {/* 📌 Sidebar - Show when authenticated and not on auth page */}
+      {!isAuthPage && isAuthenticated && (
         <Sidebar
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
@@ -86,7 +99,7 @@ function AppLayout({ children }) {
       >
         <div
           className={`${isAuthPage ? "" : "p-6"}
-                        ${!isMobile ? "max-w-7xl mx-auto w-full" : "w-full"}
+                        ${isMobile ? "w-full" : "max-w-7xl mx-auto w-full"}
                     `}
         >
           {children}

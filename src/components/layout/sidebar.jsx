@@ -14,10 +14,10 @@ import {
 
 const menu = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "Institutes", icon: Building2, href: "/institute" },
+    { name: "Company", icon: Building2, href: "/company" },
     { name: "Plans", icon: ImageIcon, href: "/plans" },
     { name: "Notifications", icon: Bell, href: "/notifications" },
-    { name: "Exam Countdown", icon: Calendar, href: "/examcountdown" },
+    { name: "Statistics", icon: Calendar, href: "/statistics" },
     { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
