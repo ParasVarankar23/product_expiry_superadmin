@@ -16,8 +16,6 @@ const menu = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { name: "Company", icon: Building2, href: "/company" },
     { name: "Plans", icon: ImageIcon, href: "/plans" },
-    { name: "Notifications", icon: Bell, href: "/notifications" },
-    { name: "Statistics", icon: Calendar, href: "/statistics" },
     { name: "Settings", icon: Settings, href: "/settings" },
 ];
 

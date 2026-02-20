@@ -174,6 +174,33 @@ export function AuthProvider({ children }) {
     }
 
     /**
+     * Refresh profile from backend
+     */
+    const refreshProfile = async () => {
+        try {
+            const storedToken = token || localStorage.getItem('superadminToken')
+
+            if (!storedToken) {
+                throw new Error('No token available')
+            }
+
+            const profileRes = await axios.get(`${BACKEND}/superadmin/profile`, {
+                headers: { Authorization: `Bearer ${storedToken}` }
+            })
+
+            if (profileRes.data.success && profileRes.data.superadmin) {
+                setProfile(profileRes.data.superadmin)
+                return profileRes.data.superadmin
+            } else {
+                throw new Error('Invalid profile response')
+            }
+        } catch (err) {
+            console.error('Failed to refresh profile:', err)
+            throw err
+        }
+    }
+
+    /**
      * On mount: check if token exists in localStorage and restore auth state
      */
     useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import axios from "axios";
+import axiosInstance from "@/lib/axiosInstance";
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -23,7 +23,6 @@ function loadRazorpayScript() {
 }
 
 export default function CompanyRegistration() {
-  const API = process.env.NEXT_PUBLIC_BACKEND_API;
 
   const [formData, setFormData] = useState({
     ownerName: "",
@@ -44,15 +43,10 @@ export default function CompanyRegistration() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("superadminToken");
-
       // 1️⃣ CREATE COMPANY
-      const res = await axios.post(
-        `${API}/superadmin/create-company`,
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const res = await axiosInstance.post(
+        `/superadmin/create-company`,
+        formData
       );
 
       // =====================
