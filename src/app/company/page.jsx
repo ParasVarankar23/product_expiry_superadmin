@@ -1,11 +1,10 @@
-"use client";
+import CompanyRegistration from '@/components/company/CompanyRegistration'
+import React from 'react'
 
-import CompanyRegistration from "@/components/company/CompanyRegistration";
-
-export default function CompanyPage() {
-    return (
-        <div>
-            <CompanyRegistration />
-        </div>
-    );
+export default function page() {
+  return (
+    <div>
+      <CompanyRegistration/>
+    </div>
+  )
 }
