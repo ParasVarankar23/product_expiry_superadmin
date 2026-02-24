@@ -92,7 +92,7 @@ export default function CompanyRegistration() {
           order_id: res.data.orderId, // Order ID from backend
           amount: res.data.amount * 100, // Amount in paise
           currency: "INR",
-          name: "Product Expiry",
+          name: "Product Expiry Reminder",
           description: `${formData.companyName} - ${formData.plan.toUpperCase()} Plan`,
           prefill: {
             email: formData.ownerEmail,
