@@ -64,13 +64,13 @@ export default function LoginPage() {
             >
                 <h1 className="text-5xl font-extrabold mb-5 leading-tight">
                     SuperAdmin Panel{" "}
-                    <span className="text-sky-500">Product Expiry Reminder</span>
+                    <span className="text-sky-500">ProductExpiry</span>
                 </h1>
 
                 <p className="text-lg opacity-70 max-w-md leading-relaxed">
                     This panel allows you to register companies, manage
                     subscriptions, monitor plan activity, and control the
-                    entire Product Expiry Reminder platform.
+                    entire ProductExpiry platform.
                 </p>
 
                 <div className="mt-8 space-y-3 text-sm opacity-90">
@@ -199,7 +199,7 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </div>
-
+                
             </div>
         </main>
     );
