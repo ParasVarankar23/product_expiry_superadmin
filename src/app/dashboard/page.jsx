@@ -1,20 +1,20 @@
 "use client";
 
-import axiosInstance from "@/lib/axiosInstance";
 import { useTheme } from "@/context/ThemeContext";
+import axiosInstance from "@/lib/axiosInstance";
 import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
-  Legend
+  YAxis
 } from "recharts";
 
 export default function DashboardPage() {
@@ -66,7 +66,7 @@ export default function DashboardPage() {
   const userRoleData = [
     { name: "Admin", value: stats.users.byRole.admin },
     { name: "Manager", value: stats.users.byRole.manager },
-    { name: "Employee", value: stats.users.byRole.employee }
+    { name: "User", value: stats.users.byRole.user }
   ];
 
   const pieColors = isDark
