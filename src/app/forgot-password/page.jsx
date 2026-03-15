@@ -2,10 +2,10 @@
 
 import { useTheme } from "@/context/ThemeContext";
 import axios from "axios";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function ForgotPasswordPage() {
     const { theme } = useTheme();
@@ -111,56 +111,47 @@ export default function ForgotPasswordPage() {
             </div>
 
             {/* ================= RIGHT SIDE ================= */}
-            <div className="w-full md:w-1/2 flex items-center justify-center p-10">
+            <div className="w-full md:w-1/2 flex items-center justify-center px-6 py-10">
                 <div
-                    className={`w-full max-w-md p-10 rounded-2xl border transition
-            ${isDark
-                            ? "bg-zinc-900 border-white/10"
-                            : "bg-white border-gray-200 shadow-md"
+                    className={`w-full max-w-md p-8 rounded-3xl border shadow-lg ${isDark
+                        ? "bg-white/5 border-white/10"
+                        : "bg-white border-black/10"
                         }`}
                 >
-                    <h2 className="text-2xl font-semibold text-center mb-8">
+                    <h2 className="text-3xl font-bold text-center mb-1">
                         Forgot Password
                     </h2>
+                    <p className="text-center opacity-70 mb-4">
+                        Enter your credentials
+                    </p>
 
                     {/* STEP 1 */}
                     {step === 1 && (
                         <form
-                            className="space-y-6"
+                            className="space-y-4"
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 sendOtp();
                             }}
                         >
-                            <div>
-                                <label
-                                    htmlFor="email"
-                                    className="text-sm opacity-60"
-                                >
-                                    Email Address
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    placeholder="Enter your registered email"
-                                    className={`w-full mt-2 px-4 py-3 rounded-xl border transition
-                    ${isDark
-                                            ? "bg-black border-white/20 text-white placeholder-gray-500"
-                                            : "bg-white border-gray-300 placeholder-gray-400"
-                                        }`}
-                                />
-                            </div>
-
+                            <input
+                                type="email"
+                                name="email"
+                                value={form.email}
+                                onChange={handleChange}
+                                placeholder="Enter your registered email"
+                                required
+                                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
+                                    ? "bg-black border-white/20"
+                                    : "bg-white border-black/20"
+                                    }`}
+                            />
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full py-3 rounded-xl font-medium transition
-                  ${isDark
-                                        ? "bg-white text-black hover:opacity-80"
-                                        : "bg-black text-white hover:opacity-80"
+                                className={`w-full py-3 rounded-xl font-semibold transition ${isDark
+                                    ? "bg-white text-black hover:opacity-90"
+                                    : "bg-black text-white hover:opacity-90"
                                     }`}
                             >
                                 {loading ? "Sending..." : "Send OTP"}
@@ -171,67 +162,70 @@ export default function ForgotPasswordPage() {
                     {/* STEP 2 */}
                     {step === 2 && (
                         <form
-                            className="space-y-6"
+                            className="space-y-4"
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 resetPassword();
                             }}
                         >
-                            <div>
-                                <label
-                                    htmlFor="otp"
-                                    className="text-sm opacity-60"
-                                >
-                                    OTP Code
-                                </label>
+                            <input
+                                type="text"
+                                name="otp"
+                                value={form.otp}
+                                onChange={handleChange}
+                                placeholder="Enter OTP sent to email"
+                                required
+                                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
+                                    ? "bg-black border-white/20"
+                                    : "bg-white border-black/20"
+                                    }`}
+                            />
+                            <div className="relative">
                                 <input
-                                    id="otp"
-                                    type="text"
-                                    name="otp"
-                                    value={form.otp}
+                                    type={show.new ? "text" : "password"}
+                                    name="newPassword"
+                                    value={form.newPassword}
                                     onChange={handleChange}
-                                    placeholder="Enter OTP sent to email"
-                                    className={`w-full mt-2 px-4 py-3 rounded-xl border
-                    ${isDark
-                                            ? "bg-black border-white/20 text-white placeholder-gray-500"
-                                            : "bg-white border-gray-300 placeholder-gray-400"
+                                    placeholder="Enter new password"
+                                    required
+                                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
+                                        ? "bg-black border-white/20"
+                                        : "bg-white border-black/20"
                                         }`}
                                 />
+                                <span
+                                    onClick={() => setShow({ ...show, new: !show.new })}
+                                    className="absolute right-4 top-3 cursor-pointer text-gray-400"
+                                >
+                                    {show.new ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </span>
                             </div>
-
-                            <PasswordInput
-                                label="New Password"
-                                name="newPassword"
-                                value={form.newPassword}
-                                show={show.new}
-                                toggle={() =>
-                                    setShow({ ...show, new: !show.new })
-                                }
-                                onChange={handleChange}
-                                isDark={isDark}
-                                placeholder="Enter new password"
-                            />
-
-                            <PasswordInput
-                                label="Confirm Password"
-                                name="confirmPassword"
-                                value={form.confirmPassword}
-                                show={show.confirm}
-                                toggle={() =>
-                                    setShow({ ...show, confirm: !show.confirm })
-                                }
-                                onChange={handleChange}
-                                isDark={isDark}
-                                placeholder="Confirm new password"
-                            />
-
+                            <div className="relative">
+                                <input
+                                    type={show.confirm ? "text" : "password"}
+                                    name="confirmPassword"
+                                    value={form.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder="Confirm new password"
+                                    required
+                                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
+                                        ? "bg-black border-white/20"
+                                        : "bg-white border-black/20"
+                                        }`}
+                                />
+                                <span
+                                    onClick={() => setShow({ ...show, confirm: !show.confirm })}
+                                    className="absolute right-4 top-3 cursor-pointer text-gray-400"
+                                >
+                                    {show.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </span>
+                            </div>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full py-3 rounded-xl font-medium transition
-                  ${isDark
-                                        ? "bg-white text-black hover:opacity-80"
-                                        : "bg-black text-white hover:opacity-80"
+                                className={`w-full py-3 rounded-xl font-semibold transition ${isDark
+                                    ? "bg-white text-black hover:opacity-90"
+                                    : "bg-black text-white hover:opacity-90"
                                     }`}
                             >
                                 {loading ? "Resetting..." : "Reset Password"}
@@ -283,7 +277,7 @@ function PasswordInput({
                     aria-label={show ? "Hide password" : "Show password"}
                     className="absolute right-4 top-3 opacity-60"
                 >
-                    {show ? <FaEyeSlash /> : <FaEye />}
+                    {show ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
             </div>
         </div>

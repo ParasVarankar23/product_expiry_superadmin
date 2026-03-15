@@ -180,28 +180,15 @@ export default function LoginPage() {
                                 type={showPassword ? "text" : "password"}
                                 name="password"
                                 placeholder="Enter Password"
-                                value={form.password}
+                                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark ? "bg-black border-white/20" : "bg-white border-black/20"}`}
                                 onChange={handleChange}
-                                required
-                                className={`w-full px-4 py-3 pr-12 rounded-xl border focus:ring-2 focus:ring-sky-500 ${isDark
-                                    ? "bg-black border-white/20"
-                                    : "bg-white border-black/20"
-                                    }`}
                             />
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setShowPassword(!showPassword)
-                                }
-                                aria-label={showPassword ? "Hide password" : "Show password"}
-                                className="absolute right-4 top-3 text-gray-400"
+                            <span
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-3 cursor-pointer text-gray-400"
                             >
-                                {showPassword ? (
-                                    <EyeOff size={20} />
-                                ) : (
-                                    <Eye size={20} />
-                                )}
-                            </button>
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </span>
                         </div>
 
                         <button
