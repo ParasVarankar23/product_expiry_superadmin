@@ -2,6 +2,7 @@
 
 import { useTheme } from "@/context/ThemeContext";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -10,6 +11,7 @@ export default function ForgotPasswordPage() {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const API = process.env.NEXT_PUBLIC_BACKEND_API;
+    const router = useRouter();
 
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -66,15 +68,7 @@ export default function ForgotPasswordPage() {
             });
 
             toast.success("Password reset successfully 🔐");
-
-            setForm({
-                email: "",
-                otp: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-
-            setStep(1);
+            router.push("/");
         } catch (err) {
             toast.error(
                 err.response?.data?.message || "Reset failed"
@@ -131,12 +125,22 @@ export default function ForgotPasswordPage() {
 
                     {/* STEP 1 */}
                     {step === 1 && (
-                        <div className="space-y-6">
+                        <form
+                            className="space-y-6"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                sendOtp();
+                            }}
+                        >
                             <div>
-                                <label className="text-sm opacity-60">
+                                <label
+                                    htmlFor="email"
+                                    className="text-sm opacity-60"
+                                >
                                     Email Address
                                 </label>
                                 <input
+                                    id="email"
                                     type="email"
                                     name="email"
                                     value={form.email}
@@ -151,7 +155,7 @@ export default function ForgotPasswordPage() {
                             </div>
 
                             <button
-                                onClick={sendOtp}
+                                type="submit"
                                 disabled={loading}
                                 className={`w-full py-3 rounded-xl font-medium transition
                   ${isDark
@@ -161,17 +165,27 @@ export default function ForgotPasswordPage() {
                             >
                                 {loading ? "Sending..." : "Send OTP"}
                             </button>
-                        </div>
+                        </form>
                     )}
 
                     {/* STEP 2 */}
                     {step === 2 && (
-                        <div className="space-y-6">
+                        <form
+                            className="space-y-6"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                resetPassword();
+                            }}
+                        >
                             <div>
-                                <label className="text-sm opacity-60">
+                                <label
+                                    htmlFor="otp"
+                                    className="text-sm opacity-60"
+                                >
                                     OTP Code
                                 </label>
                                 <input
+                                    id="otp"
                                     type="text"
                                     name="otp"
                                     value={form.otp}
@@ -212,7 +226,7 @@ export default function ForgotPasswordPage() {
                             />
 
                             <button
-                                onClick={resetPassword}
+                                type="submit"
                                 disabled={loading}
                                 className={`w-full py-3 rounded-xl font-medium transition
                   ${isDark
@@ -222,7 +236,7 @@ export default function ForgotPasswordPage() {
                             >
                                 {loading ? "Resetting..." : "Reset Password"}
                             </button>
-                        </div>
+                        </form>
                     )}
                 </div>
             </div>
@@ -244,12 +258,13 @@ function PasswordInput({
 }) {
     return (
         <div>
-            <label className="text-sm opacity-60">
+            <label htmlFor={name} className="text-sm opacity-60">
                 {label}
             </label>
 
             <div className="relative mt-2">
                 <input
+                    id={name}
                     type={show ? "text" : "password"}
                     name={name}
                     value={value}
@@ -262,12 +277,14 @@ function PasswordInput({
                         }`}
                 />
 
-                <span
+                <button
+                    type="button"
                     onClick={toggle}
-                    className="absolute right-4 top-3 cursor-pointer opacity-60"
+                    aria-label={show ? "Hide password" : "Show password"}
+                    className="absolute right-4 top-3 opacity-60"
                 >
                     {show ? <FaEyeSlash /> : <FaEye />}
-                </span>
+                </button>
             </div>
         </div>
     );

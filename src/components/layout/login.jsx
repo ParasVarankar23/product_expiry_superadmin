@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useGoogleLogin } from "@react-oauth/google";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,7 +11,7 @@ import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
     const { theme } = useTheme();
-    const { login } = useAuth();
+    const { login, googleLogin } = useAuth();
     const isDark = theme === "dark";
     const router = useRouter();
 
@@ -21,6 +22,7 @@ export default function LoginPage() {
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -51,6 +53,52 @@ export default function LoginPage() {
         }
     };
 
+    const handleGoogleLogin = useGoogleLogin({
+        onSuccess: (tokenResponse) => {
+            void (async () => {
+                try {
+                    setGoogleLoading(true);
+
+                    const userInfoResponse = await fetch(
+                        "https://www.googleapis.com/oauth2/v3/userinfo",
+                        {
+                            headers: {
+                                Authorization: `Bearer ${tokenResponse.access_token}`,
+                            },
+                        }
+                    );
+
+                    if (!userInfoResponse.ok) {
+                        throw new Error("Failed to fetch Google profile");
+                    }
+
+                    const googleUser = await userInfoResponse.json();
+
+                    await googleLogin({
+                        email: googleUser.email,
+                        name: googleUser.name,
+                        picture: googleUser.picture,
+                        googleId: googleUser.sub,
+                    });
+
+                    toast.success("Login Successful 🚀");
+                    router.push("/dashboard");
+                } catch (err) {
+                    toast.error(
+                        err.response?.data?.message || err.message || "Google login failed"
+                    );
+                } finally {
+                    setGoogleLoading(false);
+                }
+            })();
+        },
+        onError: () => {
+            toast.error("Google login failed");
+            setGoogleLoading(false);
+        },
+        scope: "openid email profile",
+    });
+
     return (
         <main
             className={`min-h-screen flex ${isDark ? "bg-black text-white" : "bg-white text-black"
@@ -59,7 +107,7 @@ export default function LoginPage() {
             {/* LEFT SIDE */}
             {/* LEFT SIDE */}
             <div
-                className={`hidden md:flex w-1/2 flex-col justify-center px-16 ${isDark ? "bg-white/5" : "bg-black/[0.03]"
+                className={`hidden md:flex w-1/2 flex-col justify-center px-16 ${isDark ? "bg-white/5" : "bg-black/3"
                     }`}
             >
                 <h1 className="text-5xl font-extrabold mb-5 leading-tight">
@@ -140,18 +188,20 @@ export default function LoginPage() {
                                     : "bg-white border-black/20"
                                     }`}
                             />
-                            <span
+                            <button
+                                type="button"
                                 onClick={() =>
                                     setShowPassword(!showPassword)
                                 }
-                                className="absolute right-4 top-3 cursor-pointer text-gray-400"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                className="absolute right-4 top-3 text-gray-400"
                             >
                                 {showPassword ? (
                                     <EyeOff size={20} />
                                 ) : (
                                     <Eye size={20} />
                                 )}
-                            </span>
+                            </button>
                         </div>
 
                         <button
@@ -168,25 +218,23 @@ export default function LoginPage() {
 
                     {/* OR */}
                     <div className="flex items-center my-5">
-                        <div className="flex-grow border-t opacity-20"></div>
+                        <div className="grow border-t opacity-20"></div>
                         <span className="px-3 text-sm opacity-60">OR</span>
-                        <div className="flex-grow border-t opacity-20"></div>
+                        <div className="grow border-t opacity-20"></div>
                     </div>
 
                     {/* GOOGLE LOGIN */}
                     <button
-                        onClick={() => {
-                            // Implement Google OAuth flow here
-                            toast.info("Google login coming soon!");
-                        }}
-                        disabled={loading}
+                        type="button"
+                        onClick={() => handleGoogleLogin()}
+                        disabled={loading || googleLoading}
                         className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border ${isDark
                             ? "border-white/20 hover:bg-white/10"
                             : "border-black/20 hover:bg-black/5"
                             }`}
                     >
                         <FcGoogle size={20} />
-                        Continue with Google
+                        {googleLoading ? "Authenticating..." : "Continue with Google"}
                     </button>
                     {/* FORGOT PASSWORD LINK */}
                     <div className="text-right py-2">
@@ -199,7 +247,7 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </div>
-                
+
             </div>
         </main>
     );

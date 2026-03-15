@@ -5,6 +5,7 @@ import Sidebar from "@/components/layout/sidebar";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AutoRefreshProvider } from "@/context/AutoRefreshContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
@@ -112,13 +113,15 @@ function AppLayout({ children }) {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <ThemeProvider>
-        <AutoRefreshProvider>
-          <AuthProvider>
-            <AppLayout>{children}</AppLayout>
-          </AuthProvider>
-        </AutoRefreshProvider>
-      </ThemeProvider>
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>
+        <ThemeProvider>
+          <AutoRefreshProvider>
+            <AuthProvider>
+              <AppLayout>{children}</AppLayout>
+            </AuthProvider>
+          </AutoRefreshProvider>
+        </ThemeProvider>
+      </GoogleOAuthProvider>
     </html>
   );
 }
